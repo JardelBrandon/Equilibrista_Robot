@@ -276,15 +276,14 @@ void setPIDTuningValues() // Invoca a função de setup do PID
     }
 }
 
-
-void readPIDTuningValues()
+void readPIDTuningValues() // Define a função readPIDTuningValues(), para leitura dos valores das constantes do PID atráves dos potenciômetros
 {
-    int potKp = analogRead(A0);
-    int potKi = analogRead(A1);
-    int potKd = analogRead(A2);
+    int potKp = analogRead(A0); //Define potKp como sendo int (inteiros), que recebe o valor do potenciômetro do pino A0 do arduino 
+    int potKi = analogRead(A1); //Define potKi como sendo int (inteiros), que recebe o valor do potenciômetro do pino A1 do arduino 
+    int potKd = analogRead(A2); //Define potKd como sendo int (inteiros), que recebe o valor do potenciômetro do pino A2 do arduino 
         
-    kp = map(potKp, 0, 1023, 0, 25000) / 100.0; //0 - 250
-    ki = map(potKi, 0, 1023, 0, 100000) / 100.0; //0 - 1000
-    kd = map(potKd, 0, 1023, 0, 500) / 100.0; //0 - 5
+    kp = map(potKp, 0, 1023, 0, 25000) / 100.0; //0 - 250 Faz um novo mapeamento "Regra de Três" dos novos valores máximos e mínimos da leitura do potenciômetro representando Kp
+    ki = map(potKi, 0, 1023, 0, 100000) / 100.0; //0 - 1000 Faz um novo mapeamento "Regra de Três" dos novos valores máximos e mínimos da leitura do potenciômetro representando Ki
+    kd = map(potKd, 0, 1023, 0, 500) / 100.0; //0 - 5 Faz um novo mapeamento "Regra de Três" dos novos valores máximos e mínimos da leitura do potenciômetro representando Kd
 }
-#endif
+#endif // Encerra a Macro condição 
