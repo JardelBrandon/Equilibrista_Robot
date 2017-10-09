@@ -42,7 +42,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll Recipiente e veto
   double prevKp, prevKi, prevKd; // Define prevKp, prevKi e prevKd como sendo do tipo double  
 #endif // Encerra a Macro condição 
 
-double originalSetpoint = 0; // Define originalSetpoint como sendo do tipo double (Esse valor é o ângulo desejado para o robô) 
+double originalSetpoint = 2; // Define originalSetpoint como sendo do tipo double (Esse valor é o ângulo desejado para o robô) 
 double setpoint = originalSetpoint; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
 double input, output; // Define input e output como sendo do tipo double (Valores de entrada e saída do cálculo PID)
 int moveState=0; // Define moveState como sendo do tipo int (Inteiros) função do movimento do robô, se for 0 = balanceado; 1 = para trás; 2 = frente
@@ -53,7 +53,7 @@ int moveState=0; // Define moveState como sendo do tipo int (Inteiros) função 
   PID pid(&input, &output, &setpoint, 30, 350, 1.7, DIRECT); // Define a função do PID com os valores informados para o input, output, setpoint, Kp, Ki, Kd e o sentido de direção do controle
 #endif  // Encerra a Macro condição
 //Obs: Valores Manuais para o PID melhores aceitos no nosso robô KP = 21 KI = 47 KD = 0.4  
-//Atualizacao KP = 25, KI = 300, KD = 1.7
+//Atualizacao KP = 30, KI = 350, KD = 1.7
 
 // Controle do MOTOR 
 
