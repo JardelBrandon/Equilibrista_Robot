@@ -42,7 +42,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll Recipiente e veto
   double prevKp, prevKi, prevKd; // Define prevKp, prevKi e prevKd como sendo do tipo double  
 #endif // Encerra a Macro condição 
 
-double originalSetpoint = 5; // Define originalSetpoint como sendo do tipo double (Esse valor é o ângulo desejado para o robô) 
+double originalSetpoint = 2; // Define originalSetpoint como sendo do tipo double (Esse valor é o ângulo desejado para o robô) 
 double setpoint = originalSetpoint; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
 double input, output; // Define input e output como sendo do tipo double (Valores de entrada e saída do cálculo PID)
 int moveState=0; // Define moveState como sendo do tipo int (Inteiros) função do movimento do robô, se for 0 = balanceado; 1 = para trás; 2 = frente
