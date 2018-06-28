@@ -15,16 +15,19 @@
 #define MANUAL_TUNING 0 // Define a constante MANUAL_TUNING, se for diferente de 0 a configuração do PID se dar por forma manual (Através dos potenciômetros); se for 0 usa o PID pré-definido  
 #define LOG_PID_CONSTANTS 0 //Define a constante LOG_PID_CONSTANTS, se for diferente de 0 imprime no serial os valores manuiais obtidos de Kp, Ki e Kd; se for 0 não imprime  
 #define MIN_ABS_SPEED 30 // Define a constante MIN_ABS_SPEED, que será o menor valor de velocidade para os motores 
+#define BLUETOOTH 1
 
 //Bluetooth
 
-const int rxpin = 11; // pin used to receive (not used in this version) 
-const int txpin = 4; // pin used to send to LCD
+const int rxpin = 4; // pin used to receive (not used in this version) 
+const int txpin = 11; // pin used to send to LCD
 
-SoftwareSerial bluetooth(rxpin, txpin); // new serial port on pins 11 and 4
+SoftwareSerial bluetooth(rxpin, txpin); // new serial port on pins 11 and 4 (TX, RX in Bluetooth)
+
+const int ledPin = 13;
+int incomingByte;  
 
 // MPU
-
 
 MPU6050 mpu; //Inclui as funções do MPU6050
 
@@ -101,18 +104,26 @@ void setup() //Função de configuração do setup para inicialização no ardui
         Fastwire::setup(400, true); // Inicia a função de comunicação do MPU com o arduino pela biblioteca Fastwire definindo os paramêtros da função
     #endif // Encerra a Macro condição 
 
-    //Inicia a porta de comunicação Serial 
-    Serial.begin(115200);
+    #if BLUETOOTH
+      bluetooth.begin(115200); //Inicia a porta de comunicção Serial com o bluetooth
+    #else
+      Serial.begin(115200); //Inicia a porta de comunicação Serial 
+    #endif
 
-    //Inicia a porta de comunicção Serial com o bluetooth
-    bluetooth.begin(115200);
+    //Configura porta do led como saída
+
+    pinMode(ledPin, OUTPUT);
 
     // Inicia o dispostivo de comunicação I2C (MPU6050)
     mpu.initialize(); // Função de inicialização do MPU6050
 
-    // Verifica a conexão do dispositivo com o arduino
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
-
+    #if BLUETOOTH
+      // Verifica a conexão do dispositivo com o arduino
+      bluetooth.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
+    #else
+      Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
+    #endif
+    
     // Carrega e configura o DMP (Digital Motion Processor)
     devStatus = mpu.dmpInitialize(); // Invoca a função de inicialização do DMP e salva seu retorno na variável devStatus 
 
@@ -201,52 +212,60 @@ void loop()  //Função de configuração do loop de repetição do arduino
         mpu.dmpGetGravity(&gravity, &q); // Lê os valores da gravidade do MPU6050 obtidos pelo DMP e com uma ordem FIFO 
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity); // Lê os valores de Yaw, Pitch e Roll do MPU6050 obtidos pelo DMP e com uma ordem FIFO 
         #if LOG_INPUT // Se a constante LOG_INPUT da Macro decisão for diferente de 0 imprime no Serial os valores de Yaw, Pitch e Roll obtidos pelo MPU6050, Se for igual a 0 não imprime 
+          #if BLUETOOTH
+            bluetooth.print("ypr\t"); // Imprime no Serial, "ypr" (Que significa Yaw, Pitch e Roll, respectivamente do MPU6050)
+            bluetooth.print(ypr[0] * 180/M_PI); // Imprime no Serial, o valor de Yaw 
+            bluetooth.print("\t"); // Imprime um espaçamento de tabulação (tab)
+            bluetooth.print(ypr[1] * 180/M_PI); // Imprime no Serial, o valor de Pitch
+            bluetooth.print("\t"); // Imprime um espaçamento de tabulação (tab)
+            bluetooth.println(ypr[2] * 180/M_PI); // Imprime no Serial, o valor de Roll
+          #else
             Serial.print("ypr\t"); // Imprime no Serial, "ypr" (Que significa Yaw, Pitch e Roll, respectivamente do MPU6050)
             Serial.print(ypr[0] * 180/M_PI); // Imprime no Serial, o valor de Yaw 
             Serial.print("\t"); // Imprime um espaçamento de tabulação (tab)
             Serial.print(ypr[1] * 180/M_PI); // Imprime no Serial, o valor de Pitch
             Serial.print("\t"); // Imprime um espaçamento de tabulação (tab)
             Serial.println(ypr[2] * 180/M_PI); // Imprime no Serial, o valor de Roll
+          #endif
         #endif // Encerra a Macro condição
         input = ypr[2] * 180/M_PI; // Seleciona o valor desejado para o programa, se ypr[0] = Yaw, se ypr[1] = Pitch, se ypr[2] = Roll
                                          // Armazena no input para o cálculo do PID o valor desejado para o robô, (No nosso caso o valor de Roll ypr[2])
-
-        bluetooth_control();
    }
-   
+   #if BLUETOOTH 
+      bluetooth_control();
+   #endif
 }
 
 
-void Bluetooth_control() {
-  comando = "";
-  
-  if(bluetooth.available()) {
-    while(bluetooth.available()) {
-      char caracter = bluetooth.read();
-
-      comando += caracter;
-      delay(10);
-    }
-
-    if (comando.indexOf("cima") >= 0) {
-
-      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}            //forward
+void bluetooth_control() {
+  // see if there's incoming serial data:
+  if (bluetooth.available() > 0) {
+    // read the oldest byte in the serial buffer:
+    incomingByte = bluetooth.read();
+    
+    if (incomingByte == 'F') { //Frente
+      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}         
       bluetooth.println("Robô para frente");
     }
-    if (comando.indexOf("baixo") >= 0) {
 
-      //setpoint = originalSetpoint + d_speed;//Serial.println(setpoint);}            //backward
-      bluetooth.println("Robô para traz");
+    if (incomingByte == 'T') { //Traz
+      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}            
+      bluetooth.println("Robô para Traz");
     }
-    if (comando.indexOf("esquerda") >= 0) {
 
-      //ysetpoint = constrain((ysetpoint + yoriginalSetpoint - d_dir),-180,180);//Serial.println(ysetpoint);}      //left
+    if (incomingByte == 'D') { //Direita
+      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}          
+      bluetooth.println("Robô para direita");
+    }
+
+    if (incomingByte == 'E') { //Esquerda
+      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}            
       bluetooth.println("Robô para esquerda");
     }
-    if (comando.indexOf("direita") >= 0) {
-
-      //ysetpoint = constrain(ysetpoint + yoriginalSetpoint + d_dir,-180,180);//Serial.println(ysetpoint);}        //right
-      bluetooth.println("Robô para direita");
+    
+    if (incomingByte == 'L') { //Acender e apagar LED
+      digitalWrite(ledPin, !digitalRead(ledPin));
+      bluetooth.println("LED: Ligado/Desligado");
     }
   }
 }
