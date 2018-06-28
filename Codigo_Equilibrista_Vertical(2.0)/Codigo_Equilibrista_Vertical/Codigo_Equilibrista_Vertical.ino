@@ -1,6 +1,7 @@
 #include <PID_v1.h> // Inclui biblioteca do PID
 #include <LMotorController.h> // Inclui biblioteca do controlador de motores DC
 #include "I2Cdev.h"  // Inclui a biblioteca I2C (Protocolo de comunicação usado pelo MPU6050)
+#include<SoftwareSerial.h>
 
 #include "MPU6050_6Axis_MotionApps20.h" // Inclui a biblioteca MPU6050_6Axis_MotionApps20 (Configuração do modo escolhido para setup no MPU6050)
 
@@ -14,6 +15,13 @@
 #define MANUAL_TUNING 0 // Define a constante MANUAL_TUNING, se for diferente de 0 a configuração do PID se dar por forma manual (Através dos potenciômetros); se for 0 usa o PID pré-definido  
 #define LOG_PID_CONSTANTS 0 //Define a constante LOG_PID_CONSTANTS, se for diferente de 0 imprime no serial os valores manuiais obtidos de Kp, Ki e Kd; se for 0 não imprime  
 #define MIN_ABS_SPEED 30 // Define a constante MIN_ABS_SPEED, que será o menor valor de velocidade para os motores 
+
+//Bluetooth
+
+const int rxpin = 11; // pin used to receive (not used in this version) 
+const int txpin = 4; // pin used to send to LCD
+
+SoftwareSerial bluetooth(rxpin, txpin); // new serial port on pins 11 and 4
 
 // MPU
 
@@ -95,6 +103,9 @@ void setup() //Função de configuração do setup para inicialização no ardui
 
     //Inicia a porta de comunicação Serial 
     Serial.begin(115200);
+
+    //Inicia a porta de comunicção Serial com o bluetooth
+    bluetooth.begin(115200);
 
     // Inicia o dispostivo de comunicação I2C (MPU6050)
     mpu.initialize(); // Função de inicialização do MPU6050
@@ -199,7 +210,45 @@ void loop()  //Função de configuração do loop de repetição do arduino
         #endif // Encerra a Macro condição
         input = ypr[2] * 180/M_PI; // Seleciona o valor desejado para o programa, se ypr[0] = Yaw, se ypr[1] = Pitch, se ypr[2] = Roll
                                          // Armazena no input para o cálculo do PID o valor desejado para o robô, (No nosso caso o valor de Roll ypr[2])
+
+        bluetooth_control();
    }
+   
+}
+
+
+void Bluetooth_control() {
+  comando = "";
+  
+  if(bluetooth.available()) {
+    while(bluetooth.available()) {
+      char caracter = bluetooth.read();
+
+      comando += caracter;
+      delay(10);
+    }
+
+    if (comando.indexOf("cima") >= 0) {
+
+      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}            //forward
+      bluetooth.println("Robô para frente");
+    }
+    if (comando.indexOf("baixo") >= 0) {
+
+      //setpoint = originalSetpoint + d_speed;//Serial.println(setpoint);}            //backward
+      bluetooth.println("Robô para traz");
+    }
+    if (comando.indexOf("esquerda") >= 0) {
+
+      //ysetpoint = constrain((ysetpoint + yoriginalSetpoint - d_dir),-180,180);//Serial.println(ysetpoint);}      //left
+      bluetooth.println("Robô para esquerda");
+    }
+    if (comando.indexOf("direita") >= 0) {
+
+      //ysetpoint = constrain(ysetpoint + yoriginalSetpoint + d_dir,-180,180);//Serial.println(ysetpoint);}        //right
+      bluetooth.println("Robô para direita");
+    }
+  }
 }
 
 
