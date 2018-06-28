@@ -37,6 +37,14 @@
             app:srcCompat="@android:drawable/arrow_up_float" />
 
         <ImageView
+            android:id="@+id/imageViewCentro"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/tamanho_quadrado_centro"
+            android:layout_weight="1"
+            android:layout_marginTop="@dimen/button_borda_superior_quadrado_centro"
+            app:srcCompat="@android:drawable/checkbox_off_background" />
+
+        <ImageView
             android:id="@+id/imageViewDireita"
             android:layout_height="@dimen/tamanho_seta"
             android:layout_width="0dp"
