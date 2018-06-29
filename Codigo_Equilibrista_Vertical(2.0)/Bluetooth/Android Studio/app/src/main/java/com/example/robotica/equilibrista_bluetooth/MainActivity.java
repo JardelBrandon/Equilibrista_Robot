@@ -1,11 +1,15 @@
 package com.example.robotica.equilibrista_bluetooth;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     Button buttonConexao;
     ImageView buttonFrente, buttonTraz, buttonEsquerda, buttonDireita, buttonLed;
     boolean conexao;
+    @SuppressLint({"ClickableViewAccessibility", "HandlerLeak"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         buttonTraz = (ImageView) findViewById(R.id.imageViewBaixo);
         buttonLed = (ImageView) findViewById(R.id.imageViewCentro);
         if (bluetoothAdapter == null) {
-            Toast.makeText(getApplicationContext(), "Seu dispositivo não possui bluetooth", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Seu dispositivo não possui bluetooth", Toast.LENGTH_SHORT).show();
         }
         else if (!bluetoothAdapter.isEnabled()) {
             Intent ativaBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -63,9 +68,9 @@ public class MainActivity extends AppCompatActivity {
                         bluetoothSocket.close();
                         conexao = false;
                         buttonConexao.setText("Conectar");
-                        Toast.makeText(getApplicationContext(), "Bluetooth desconectado", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Bluetooth desconectado", Toast.LENGTH_SHORT).show();
                     }catch (IOException erro) {
-                        Toast.makeText(getApplicationContext(), "Ocorreu um erro:" + erro, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Ocorreu um erro:" + erro, Toast.LENGTH_SHORT).show();
                     }
                 }
                 else {
@@ -84,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("Comandos", "LED: Acender/Apagar");
                 }
                 else {
-                    Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -95,11 +100,13 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        buttonFrente.setColorFilter(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimaryDark), android.graphics.PorterDuff.Mode.MULTIPLY);
                         if (handler != null) return true;
                         handler = new Handler();
                         handler.postDelayed(action, 200);
                         break;
                     case MotionEvent.ACTION_UP:
+                        buttonFrente.getDrawable().clearColorFilter();
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
@@ -120,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("Comandos", "Frente");
                     }
                     else {
-                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
                     handler.postDelayed(this, 200);
                 }
@@ -158,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("Comandos", "Traz");
                     }
                     else {
-                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
                     handler.postDelayed(this, 200);
                 }
@@ -196,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("Comandos", "Direita");
                     }
                     else {
-                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
                     handler.postDelayed(this, 200);
                 }
@@ -234,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("Comandos", "Esquerda");
                     }
                     else {
-                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
                     handler.postDelayed(this, 200);
                 }
@@ -267,17 +274,17 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case SOLICITA_ATIVACAO_BLUETOOTH:
                 if (resultCode == Activity.RESULT_OK) {
-                    Toast.makeText(getApplicationContext(), "O bluetooth foi ativado", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "O bluetooth foi ativado", Toast.LENGTH_SHORT).show();
                 }
                 else {
-                    Toast.makeText(getApplicationContext(), "O bluetooth não foi ativado, o app será encerrado", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "O bluetooth não foi ativado, o app será encerrado", Toast.LENGTH_SHORT).show();
                     finish();
                 }
                 break;
             case SOLICITA_CONEXAO:
                 if (resultCode == Activity.RESULT_OK) {
                     MAC = data.getExtras().getString(ListaDispositivos.ENDERECO_MAC);
-                    //Toast.makeText(getApplicationContext(), "MAC Final: " + MAC, Toast.LENGTH_LONG).show();
+                    //Toast.makeText(getApplicationContext(), "MAC Final: " + MAC, Toast.LENGTH_SHORT).show();
                     bluetoothDevice = bluetoothAdapter.getRemoteDevice(MAC);
                     try {
                         bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
@@ -286,14 +293,14 @@ public class MainActivity extends AppCompatActivity {
                         connectedThread = new ConnectedThread(bluetoothSocket);
                         connectedThread.start();
                         buttonConexao.setText("Desconectar");
-                        Toast.makeText(getApplicationContext(), "Conectado ao MAC:" + MAC, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Conectado ao MAC:" + MAC, Toast.LENGTH_SHORT).show();
                     }catch (IOException erro) {
                         conexao = false;
-                        Toast.makeText(getApplicationContext(), "Ocorreu um erro:" + erro, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Ocorreu um erro:" + erro, Toast.LENGTH_SHORT).show();
                     }
                 }
                 else {
-                    Toast.makeText(getApplicationContext(), "Falha ao obter o MAC", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "Falha ao obter o MAC", Toast.LENGTH_SHORT).show();
                 }
                 break;
         }
