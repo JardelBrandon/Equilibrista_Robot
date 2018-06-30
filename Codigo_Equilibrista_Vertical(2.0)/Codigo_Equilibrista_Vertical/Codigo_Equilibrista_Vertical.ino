@@ -15,6 +15,7 @@
 #define MANUAL_TUNING 0 // Define a constante MANUAL_TUNING, se for diferente de 0 a configuração do PID se dar por forma manual (Através dos potenciômetros); se for 0 usa o PID pré-definido  
 #define LOG_PID_CONSTANTS 0 //Define a constante LOG_PID_CONSTANTS, se for diferente de 0 imprime no serial os valores manuiais obtidos de Kp, Ki e Kd; se for 0 não imprime  
 #define MIN_ABS_SPEED 30 // Define a constante MIN_ABS_SPEED, que será o menor valor de velocidade para os motores 
+#define VELOCIDADE_CURVA 200
 #define BLUETOOTH 1
 
 //Bluetooth
@@ -22,7 +23,7 @@
 const int rxpin = 4; // pin used to receive (not used in this version) 
 const int txpin = 11; // pin used to send to LCD
 
-SoftwareSerial bluetooth(rxpin, txpin); // new serial port on pins 11 and 4 (TX, RX in Bluetooth)
+SoftwareSerial bluetooth(rxpin, txpin); // new serial port on pins 11 and 4 (TX, RX no Bluetooth)
 
 const int ledPin = 13;
 int incomingByte;  
@@ -53,7 +54,9 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll Recipiente e veto
   double prevKp, prevKi, prevKd; // Define prevKp, prevKi e prevKd como sendo do tipo double  
 #endif // Encerra a Macro condição 
 
-double setpoint = 2; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
+double anguloMovimentar = 3;
+double originalSetpoint = 2;
+double setpoint = originalSetpoint; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
 double input, output; // Define input e output como sendo do tipo double (Valores de entrada e saída do cálculo PID)
 int moveState=0; // Define moveState como sendo do tipo int (Inteiros) função do movimento do robô, se for 0 = balanceado; 1 = para trás; 2 = frente
 
@@ -242,23 +245,23 @@ void bluetooth_control() {
     // read the oldest byte in the serial buffer:
     incomingByte = bluetooth.read();
     
-    if (incomingByte == 'F') { //Frente
-      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}         
+    if (incomingByte == 'F' and input < (originalSetpoint + anguloMovimentar)) { //Frente
+      setpoint = originalSetpoint + anguloMovimentar;    
       bluetooth.println("Robô para frente");
     }
 
-    if (incomingByte == 'T') { //Traz
-      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}            
+    if (incomingByte == 'T' and input > (originalSetpoint - anguloMovimentar)) { //Traz
+      setpoint = originalSetpoint - anguloMovimentar;          
       bluetooth.println("Robô para Traz");
     }
 
-    if (incomingByte == 'D') { //Direita
-      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}          
+    if (incomingByte == 'D' and input < (originalSetpoint + anguloMovimentar) and input > (originalSetpoint - anguloMovimentar)) { //Direita
+      motorController.move(VELOCIDADE_CURVA, output, MIN_ABS_SPEED);
       bluetooth.println("Robô para direita");
     }
 
     if (incomingByte == 'E') { //Esquerda
-      //setpoint = originalSetpoint - d_speed;//Serial.println(setpoint);}            
+      motorController.move(output, VELOCIDADE_CURVA, MIN_ABS_SPEED);         
       bluetooth.println("Robô para esquerda");
     }
     
@@ -266,6 +269,9 @@ void bluetooth_control() {
       digitalWrite(ledPin, !digitalRead(ledPin));
       bluetooth.println("LED: Ligado/Desligado");
     }
+  }
+  else {
+    setpoint = originalSetpoint;
   }
 }
 
