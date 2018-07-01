@@ -6,7 +6,9 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.graphics.PorterDuff;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.content.ContextCompat;
@@ -81,43 +83,64 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        buttonLed.setOnClickListener(new View.OnClickListener() {
+        buttonLed.setOnTouchListener(new View.OnTouchListener() {
+            private Rect rect;
+
             @Override
-            public void onClick(View view) {
-                if (conexao) {
-                    connectedThread.enviar("L");
-                    Log.d("Comandos", "LED: Acender/Apagar");
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch(motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (conexao) {
+                            connectedThread.enviar("L");
+                            Log.d("Comandos", "LED: Acender/Apagar");
+                        } else {
+                            Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
+                        }
+                        rect = new Rect(view.getLeft(), view.getTop(), view.getRight(), view.getBottom());
+                        buttonLed.setColorFilter(Color.argb(50, 0, 0, 0));
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        buttonLed.clearColorFilter();
+                    case MotionEvent.ACTION_MOVE:
+                        if(!rect.contains(view.getLeft() + (int) motionEvent.getX(), view.getTop() + (int) motionEvent.getY())) {
+                            buttonLed.clearColorFilter();
+                        }
                 }
-                else {
-                    Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
-                }
+                return true;
             }
         });
 
+
         buttonFrente.setOnTouchListener(new View.OnTouchListener() {
             private Handler handler;
+            private Rect rect;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        buttonFrente.setColorFilter(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimaryDark), android.graphics.PorterDuff.Mode.MULTIPLY);
+                        buttonFrente.setColorFilter(Color.argb(50, 0, 0, 0));
+                        rect = new Rect(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
                         if (handler != null) return true;
                         handler = new Handler();
                         handler.postDelayed(action, 200);
                         break;
                     case MotionEvent.ACTION_UP:
-                        buttonFrente.getDrawable().clearColorFilter();
+                        buttonFrente.clearColorFilter();
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        if (handler == null) return true;
-                        handler.removeCallbacks(action);
-                        handler = null;
+                        if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
+                            buttonFrente.clearColorFilter();
+                            if (handler == null) return true;
+                            handler.removeCallbacks(action);
+                            handler = null;
+                        }
                         break;
                 }
-                return false;
+                return true;
             }
             Runnable action = new Runnable() {
                 @Override
@@ -136,26 +159,34 @@ public class MainActivity extends AppCompatActivity {
 
         buttonTraz.setOnTouchListener(new View.OnTouchListener() {
             private Handler handler;
+            private Rect rect;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        buttonTraz.setColorFilter(Color.argb(50, 0, 0, 0));
+                        rect = new Rect(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
                         if (handler != null) return true;
                         handler = new Handler();
                         handler.postDelayed(action, 200);
                         break;
                     case MotionEvent.ACTION_UP:
+                        buttonTraz.clearColorFilter();
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        if (handler == null) return true;
-                        handler.removeCallbacks(action);
-                        handler = null;
+                        if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
+                            buttonTraz.clearColorFilter();
+                            if (handler == null) return true;
+                            handler.removeCallbacks(action);
+                            handler = null;
+                        }
                         break;
                 }
-                return false;
+                return true;
             }
             Runnable action = new Runnable() {
                 @Override
@@ -174,26 +205,34 @@ public class MainActivity extends AppCompatActivity {
 
         buttonDireita.setOnTouchListener(new View.OnTouchListener() {
             private Handler handler;
+            private Rect rect;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        buttonDireita.setColorFilter(Color.argb(50, 0, 0, 0));
+                        rect = new Rect(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
                         if (handler != null) return true;
                         handler = new Handler();
                         handler.postDelayed(action, 200);
                         break;
                     case MotionEvent.ACTION_UP:
+                        buttonDireita.clearColorFilter();
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        if (handler == null) return true;
-                        handler.removeCallbacks(action);
-                        handler = null;
+                        if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
+                            buttonDireita.clearColorFilter();
+                            if (handler == null) return true;
+                            handler.removeCallbacks(action);
+                            handler = null;
+                        }
                         break;
                 }
-                return false;
+                return true;
             }
             Runnable action = new Runnable() {
                 @Override
@@ -212,26 +251,34 @@ public class MainActivity extends AppCompatActivity {
 
         buttonEsquerda.setOnTouchListener(new View.OnTouchListener() {
             private Handler handler;
+            private Rect rect;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        buttonEsquerda.setColorFilter(Color.argb(50, 0, 0, 0));
+                        rect = new Rect(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
                         if (handler != null) return true;
                         handler = new Handler();
                         handler.postDelayed(action, 200);
                         break;
                     case MotionEvent.ACTION_UP:
+                        buttonEsquerda.clearColorFilter();
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        if (handler == null) return true;
-                        handler.removeCallbacks(action);
-                        handler = null;
+                        if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
+                            buttonEsquerda.clearColorFilter();
+                            if (handler == null) return true;
+                            handler.removeCallbacks(action);
+                            handler = null;
+                        }
                         break;
                 }
-                return false;
+                return true;
             }
             Runnable action = new Runnable() {
                 @Override

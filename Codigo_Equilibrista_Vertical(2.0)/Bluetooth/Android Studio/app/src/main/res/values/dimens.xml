@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="button_borda_superior">50dp</dimen>
-    <dimen name="button_borda_superior_quadrado_centro">35dp</dimen>
-    <dimen name="tamanho_seta">70dp</dimen>
-    <dimen name="tamanho_quadrado_centro">100dp</dimen>
+    <dimen name="button_borda_superior">25dp</dimen>
+    <dimen name="button_borda_superior_quadrado_centro">25dp</dimen>
+    <dimen name="tamanho_seta">110dp</dimen>
+    <dimen name="tamanho_quadrado">110dp</dimen>
 
 </resources>

@@ -17,8 +17,9 @@
 
     <ImageView
         android:id="@+id/imageViewCima"
-        android:layout_width="match_parent"
+        android:layout_width="@dimen/tamanho_seta"
         android:layout_height="@dimen/tamanho_seta"
+        android:layout_gravity="center"
         android:layout_marginTop="@dimen/button_borda_superior"
         app:srcCompat="@android:drawable/arrow_up_float"
         android:contentDescription="@string/todo" />
@@ -30,8 +31,7 @@
         <ImageView
             android:id="@+id/imageViewEsquerda"
             android:layout_height="@dimen/tamanho_seta"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="@dimen/tamanho_seta"
             android:rotation="270"
             android:layout_marginTop="@dimen/button_borda_superior"
             app:srcCompat="@android:drawable/arrow_up_float" />
@@ -39,7 +39,7 @@
         <ImageView
             android:id="@+id/imageViewCentro"
             android:layout_width="0dp"
-            android:layout_height="@dimen/tamanho_quadrado_centro"
+            android:layout_height="@dimen/tamanho_quadrado"
             android:layout_weight="1"
             android:layout_marginTop="@dimen/button_borda_superior_quadrado_centro"
             app:srcCompat="@android:drawable/checkbox_off_background" />
@@ -47,8 +47,7 @@
         <ImageView
             android:id="@+id/imageViewDireita"
             android:layout_height="@dimen/tamanho_seta"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="@dimen/tamanho_seta"
             android:rotation="90"
             android:layout_marginTop="@dimen/button_borda_superior"
             app:srcCompat="@android:drawable/arrow_up_float" />
@@ -56,8 +55,9 @@
 
     <ImageView
         android:id="@+id/imageViewBaixo"
-        android:layout_width="match_parent"
+        android:layout_width="@dimen/tamanho_seta"
         android:layout_height="@dimen/tamanho_seta"
+        android:layout_gravity="center"
         android:rotation="180"
         android:layout_marginTop="@dimen/button_borda_superior"
         app:srcCompat="@android:drawable/arrow_up_float" />
