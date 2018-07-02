@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     Button buttonConexao;
     ImageView buttonFrente, buttonTraz, buttonEsquerda, buttonDireita, buttonLed;
     boolean conexao;
+    int delayRepeticao;
     @SuppressLint({"ClickableViewAccessibility", "HandlerLeak"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         conexao = false;
+        delayRepeticao = 20;
         dadosBluetooth = new StringBuilder();
         uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
         buttonConexao = (Button) findViewById(R.id.buttonConexao);
@@ -130,6 +132,8 @@ public class MainActivity extends AppCompatActivity {
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
+                        connectedThread.enviar("C");
+                        Log.d("Comandos", "Encerrar Movimentação");
                         break;
                     case MotionEvent.ACTION_MOVE:
                         if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
@@ -137,6 +141,8 @@ public class MainActivity extends AppCompatActivity {
                             if (handler == null) return true;
                             handler.removeCallbacks(action);
                             handler = null;
+                            connectedThread.enviar("C");
+                            Log.d("Comandos", "Encerrar Movimentação");
                         }
                         break;
                 }
@@ -152,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                     else {
                         Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
-                    handler.postDelayed(this, 200);
+                    handler.postDelayed(this, delayRepeticao);
                 }
             };
         });
@@ -176,6 +182,8 @@ public class MainActivity extends AppCompatActivity {
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
+                        connectedThread.enviar("C");
+                        Log.d("Comandos", "Encerrar Movimentação");
                         break;
                     case MotionEvent.ACTION_MOVE:
                         if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
@@ -183,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
                             if (handler == null) return true;
                             handler.removeCallbacks(action);
                             handler = null;
+                            connectedThread.enviar("C");
+                            Log.d("Comandos", "Encerrar Movimentação");
                         }
                         break;
                 }
@@ -198,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
                     else {
                         Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
-                    handler.postDelayed(this, 200);
+                    handler.postDelayed(this, delayRepeticao);
                 }
             };
         });
@@ -222,6 +232,8 @@ public class MainActivity extends AppCompatActivity {
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
+                        connectedThread.enviar("C");
+                        Log.d("Comandos", "Encerrar Movimentação");
                         break;
                     case MotionEvent.ACTION_MOVE:
                         if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
@@ -229,6 +241,8 @@ public class MainActivity extends AppCompatActivity {
                             if (handler == null) return true;
                             handler.removeCallbacks(action);
                             handler = null;
+                            connectedThread.enviar("C");
+                            Log.d("Comandos", "Encerrar Movimentação");
                         }
                         break;
                 }
@@ -244,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
                     else {
                         Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
-                    handler.postDelayed(this, 200);
+                    handler.postDelayed(this, delayRepeticao);
                 }
             };
         });
@@ -261,13 +275,15 @@ public class MainActivity extends AppCompatActivity {
                         rect = new Rect(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
                         if (handler != null) return true;
                         handler = new Handler();
-                        handler.postDelayed(action, 200);
+                        handler.postDelayed(action, delayRepeticao);
                         break;
                     case MotionEvent.ACTION_UP:
                         buttonEsquerda.clearColorFilter();
                         if (handler == null) return true;
                         handler.removeCallbacks(action);
                         handler = null;
+                        connectedThread.enviar("C");
+                        Log.d("Comandos", "Encerrar Movimentação");
                         break;
                     case MotionEvent.ACTION_MOVE:
                         if(!rect.contains(v.getLeft() + (int) event.getX(), v.getTop() + (int) event.getY())) {
@@ -275,6 +291,8 @@ public class MainActivity extends AppCompatActivity {
                             if (handler == null) return true;
                             handler.removeCallbacks(action);
                             handler = null;
+                            connectedThread.enviar("C");
+                            Log.d("Comandos", "Encerrar Movimentação");
                         }
                         break;
                 }
@@ -290,10 +308,11 @@ public class MainActivity extends AppCompatActivity {
                     else {
                         Toast.makeText(getApplicationContext(), "Bluetooth não conectado", Toast.LENGTH_SHORT).show();
                     }
-                    handler.postDelayed(this, 200);
+                    handler.postDelayed(this, delayRepeticao);
                 }
             };
         });
+        //Metódo para receber informações do arduino, ainda não implementada!
         mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {

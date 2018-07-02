@@ -10,12 +10,11 @@
     #include "Wire.h" // Inclui biblioteca Wire (Comunicação do arduino com o protocolo I2C)
 #endif //Fim da macro condição 
 
-
+#define LOG_BLUETOOTH 0
 #define LOG_INPUT 0 // Define a constante LOG_INPUT, se for diferente de 0 imprime no serial os valores obtidos pelo giroscópio; se for 0 não imprime 
 #define MANUAL_TUNING 0 // Define a constante MANUAL_TUNING, se for diferente de 0 a configuração do PID se dar por forma manual (Através dos potenciômetros); se for 0 usa o PID pré-definido  
 #define LOG_PID_CONSTANTS 0 //Define a constante LOG_PID_CONSTANTS, se for diferente de 0 imprime no serial os valores manuiais obtidos de Kp, Ki e Kd; se for 0 não imprime  
 #define MIN_ABS_SPEED 30 // Define a constante MIN_ABS_SPEED, que será o menor valor de velocidade para os motores 
-#define VELOCIDADE_CURVA 200
 #define BLUETOOTH 1
 
 //Bluetooth
@@ -78,8 +77,10 @@ int IN3 = 6; // Pino de Saída da ligação do motor Direito, HIGH ou LOW
 int IN4 = 12; // Pino de Saída da ligação do motor Direito, HIGH ou LOW 
 int ENB = 10; // Pino de Saída do controle PWM do motor Direito
 
+int velocidadeMotorA = 1;
+int velocidadeMotorB = 1;
 
-LMotorController motorController(ENA, IN1, IN2, ENB, IN3, IN4, 1, 1); // Define os pinos na função da biblioteca de controle de motores DC e as constantes de velocidade dos motores 
+LMotorController motorController(ENA, IN1, IN2, ENB, IN3, IN4, velocidadeMotorA, velocidadeMotorB); // Define os pinos na função da biblioteca de controle de motores DC e as constantes de velocidade dos motores 
 
 
 // Temporizador
@@ -106,11 +107,8 @@ void setup() //Função de configuração do setup para inicialização no ardui
         Fastwire::setup(400, true); // Inicia a função de comunicação do MPU com o arduino pela biblioteca Fastwire definindo os paramêtros da função
     #endif // Encerra a Macro condição 
 
-    #if BLUETOOTH
-      bluetooth.begin(115200); //Inicia a porta de comunicção Serial com o bluetooth
-    #else
-      Serial.begin(115200); //Inicia a porta de comunicação Serial 
-    #endif
+    bluetooth.begin(115200); //Inicia a porta de comunicção Serial com o bluetooth
+    Serial.begin(115200); //Inicia a porta de comunicação Serial 
 
     //Configura porta do led como saída
 
@@ -170,9 +168,8 @@ void loop()  //Função de configuração do loop de repetição do arduino
     {
         
         // Quando o MPU6050 envia os dados, é executado os cálculos do PID e de acordo com o cálculo define a velocidade de saída para os motores
-        pid.Compute(); // Invoca a função do cálculo do PID da biblioteca do arduino 
-        motorController.move(output, MIN_ABS_SPEED); // Invoca a função de controle dos motores DC Usando como paramêtros os motores a velocidade (output do PID) e a velociade Mínima 
-        
+        pid.Compute(); // Invoca a função do cálculo do PID da biblioteca do arduino   
+        motorController.move(output * velocidadeMotorA, output * velocidadeMotorB, MIN_ABS_SPEED); // Invoca a função de controle dos motores DC Usando como paramêtros os motores a velocidade (output do PID) e a velociade Mínima
         unsigned long currentMillis = millis(); // Define currentMillis como sendo do tipo unsigned long, que recebe os milisegundos de cada loop 
         
         if (currentMillis - time1Hz >= 1000) // Se o tempo de currentMillis menos o tempo de time1Hz for menor ou igual a 1000 realiza o código abaixo 
@@ -214,21 +211,12 @@ void loop()  //Função de configuração do loop de repetição do arduino
         mpu.dmpGetGravity(&gravity, &q); // Lê os valores da gravidade do MPU6050 obtidos pelo DMP e com uma ordem FIFO 
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity); // Lê os valores de Yaw, Pitch e Roll do MPU6050 obtidos pelo DMP e com uma ordem FIFO 
         #if LOG_INPUT // Se a constante LOG_INPUT da Macro decisão for diferente de 0 imprime no Serial os valores de Yaw, Pitch e Roll obtidos pelo MPU6050, Se for igual a 0 não imprime 
-          #if BLUETOOTH
-            bluetooth.print("ypr\t"); // Imprime no Serial, "ypr" (Que significa Yaw, Pitch e Roll, respectivamente do MPU6050)
-            bluetooth.print(ypr[0] * 180/M_PI); // Imprime no Serial, o valor de Yaw 
-            bluetooth.print("\t"); // Imprime um espaçamento de tabulação (tab)
-            bluetooth.print(ypr[1] * 180/M_PI); // Imprime no Serial, o valor de Pitch
-            bluetooth.print("\t"); // Imprime um espaçamento de tabulação (tab)
-            bluetooth.println(ypr[2] * 180/M_PI); // Imprime no Serial, o valor de Roll
-          #else
             Serial.print("ypr\t"); // Imprime no Serial, "ypr" (Que significa Yaw, Pitch e Roll, respectivamente do MPU6050)
             Serial.print(ypr[0] * 180/M_PI); // Imprime no Serial, o valor de Yaw 
             Serial.print("\t"); // Imprime um espaçamento de tabulação (tab)
             Serial.print(ypr[1] * 180/M_PI); // Imprime no Serial, o valor de Pitch
             Serial.print("\t"); // Imprime um espaçamento de tabulação (tab)
             Serial.println(ypr[2] * 180/M_PI); // Imprime no Serial, o valor de Roll
-          #endif
         #endif // Encerra a Macro condição
         input = ypr[2] * 180/M_PI; // Seleciona o valor desejado para o programa, se ypr[0] = Yaw, se ypr[1] = Pitch, se ypr[2] = Roll
                                          // Armazena no input para o cálculo do PID o valor desejado para o robô, (No nosso caso o valor de Roll ypr[2])
@@ -240,39 +228,79 @@ void loop()  //Função de configuração do loop de repetição do arduino
 
 
 void bluetooth_control() {
+  
   // see if there's incoming serial data:
   if (bluetooth.available() > 0) {
     // read the oldest byte in the serial buffer:
     incomingByte = bluetooth.read();
-    
-    if (incomingByte == 'F' and input < (originalSetpoint + anguloMovimentar)) { //Frente
-      setpoint = originalSetpoint + anguloMovimentar;    
-      bluetooth.println("Robô para frente");
-    }
 
-    if (incomingByte == 'T' and input > (originalSetpoint - anguloMovimentar)) { //Traz
+      if (incomingByte == 'F') { //Frente
       setpoint = originalSetpoint - anguloMovimentar;          
-      bluetooth.println("Robô para Traz");
+      #if LOG_BLUETOOTH
+        Serial.println("Robô para frente");
+      #endif
+    }
+    
+    if (incomingByte == 'T') { //Traz
+      setpoint = originalSetpoint + anguloMovimentar;    
+      #if LOG_BLUETOOTH
+        Serial.println("Robô para traz");
+      #endif
     }
 
-    if (incomingByte == 'D' and input < (originalSetpoint + anguloMovimentar) and input > (originalSetpoint - anguloMovimentar)) { //Direita
-      motorController.move(VELOCIDADE_CURVA, output, MIN_ABS_SPEED);
-      bluetooth.println("Robô para direita");
+    if (incomingByte == 'D') { //Direita
+      setpoint = originalSetpoint + anguloMovimentar;
+      velocidadeMotorB = 0.7;
+      #if LOG_BLUETOOTH
+        Serial.println("Robô para direita");
+      #endif
     }
 
-    if (incomingByte == 'E') { //Esquerda
-      motorController.move(output, VELOCIDADE_CURVA, MIN_ABS_SPEED);         
-      bluetooth.println("Robô para esquerda");
+    if (incomingByte == 'D' and !equilibrado()) {
+      velocidadeMotorA = 1;
+      velocidadeMotorB = 1;
+      setpoint = originalSetpoint;    
+      #if LOG_BLUETOOTH
+        Serial.println("Setpoint zerado");
+      #endif
+    }
+  
+    if (incomingByte == 'E') { //Esquerda  
+      setpoint = originalSetpoint + anguloMovimentar;    
+      velocidadeMotorA = 0.7;
+      #if LOG_BLUETOOTH     
+        Serial.println("Robô para esquerda");
+      #endif
+    }
+
+    if (incomingByte == 'E' and !equilibrado()) {
+      velocidadeMotorA = 1;
+      velocidadeMotorB = 1;
+      setpoint = originalSetpoint;    
+      #if LOG_BLUETOOTH
+        Serial.println("Setpoint zerado");
+      #endif
     }
     
     if (incomingByte == 'L') { //Acender e apagar LED
       digitalWrite(ledPin, !digitalRead(ledPin));
-      bluetooth.println("LED: Ligado/Desligado");
+      #if LOG_BLUETOOTH
+        Serial.println("LED: Ligado/Desligado");
+      #endif
+    }
+    if (incomingByte == 'C') { //Terminar movimentação
+      velocidadeMotorA = 1;
+      velocidadeMotorB = 1;
+      setpoint = originalSetpoint;    
+      #if LOG_BLUETOOTH
+        Serial.println("Setpoint zerado");
+      #endif
     }
   }
-  else {
-    setpoint = originalSetpoint;
-  }
+}
+
+boolean equilibrado() {
+  return (input < (originalSetpoint + anguloMovimentar) and input > (originalSetpoint - anguloMovimentar));
 }
 
 
