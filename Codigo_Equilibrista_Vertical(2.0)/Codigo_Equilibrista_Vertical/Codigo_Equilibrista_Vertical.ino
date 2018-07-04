@@ -53,11 +53,10 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll Recipiente e veto
   double prevKp, prevKi, prevKd; // Define prevKp, prevKi e prevKd como sendo do tipo double  
 #endif // Encerra a Macro condição 
 
-double anguloMovimentar = 3;
-double originalSetpoint = 2;
+double anguloMovimentar = 2;
+double originalSetpoint = -2;
 double setpoint = originalSetpoint; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
 double input, output; // Define input e output como sendo do tipo double (Valores de entrada e saída do cálculo PID)
-int moveState=0; // Define moveState como sendo do tipo int (Inteiros) função do movimento do robô, se for 0 = balanceado; 1 = para trás; 2 = frente
 
 #if MANUAL_TUNING // Macro condição, se a constante MANUAL_TUNING for diferente de 0 realiza o comando abaixo (Ajuste do PID de forma Manual com potenciômetros)
   PID pid(&input, &output, &setpoint, 0, 0, 0, DIRECT); // Define a função do PID com os valores informados para o input, output, setpoint, Kp, Ki, Kd e o sentido de direção do controle 
@@ -234,67 +233,30 @@ void bluetooth_control() {
     // read the oldest byte in the serial buffer:
     incomingByte = bluetooth.read();
 
-      if (incomingByte == 'F') { //Frente
-      setpoint = originalSetpoint - anguloMovimentar;          
-      #if LOG_BLUETOOTH
-        Serial.println("Robô para frente");
-      #endif
+    switch (incomingByte) {
+      case 'F':
+        setpoint = originalSetpoint - anguloMovimentar;     
+        break;
+      case 'T':
+        setpoint = originalSetpoint + anguloMovimentar;  
+        break;
+      case 'D':
+        setpoint = originalSetpoint + anguloMovimentar;
+        velocidadeMotorB = 0.5; 
+        break;
+      case 'E':
+        setpoint = originalSetpoint + anguloMovimentar;    
+        velocidadeMotorA = 0.5;
+        break;
+      case 'L':
+        digitalWrite(ledPin, !digitalRead(ledPin));
+        break;
     }
-    
-    if (incomingByte == 'T') { //Traz
-      setpoint = originalSetpoint + anguloMovimentar;    
-      #if LOG_BLUETOOTH
-        Serial.println("Robô para traz");
-      #endif
-    }
-
-    if (incomingByte == 'D') { //Direita
-      setpoint = originalSetpoint + anguloMovimentar;
-      velocidadeMotorB = 0.7;
-      #if LOG_BLUETOOTH
-        Serial.println("Robô para direita");
-      #endif
-    }
-
-    if (incomingByte == 'D' and !equilibrado()) {
+ 
+    if (incomingByte == 'C' or (incomingByte == 'E' and !equilibrado()) or (incomingByte == 'D' and !equilibrado())) { //Terminar movimentação
       velocidadeMotorA = 1;
       velocidadeMotorB = 1;
       setpoint = originalSetpoint;    
-      #if LOG_BLUETOOTH
-        Serial.println("Setpoint zerado");
-      #endif
-    }
-  
-    if (incomingByte == 'E') { //Esquerda  
-      setpoint = originalSetpoint + anguloMovimentar;    
-      velocidadeMotorA = 0.7;
-      #if LOG_BLUETOOTH     
-        Serial.println("Robô para esquerda");
-      #endif
-    }
-
-    if (incomingByte == 'E' and !equilibrado()) {
-      velocidadeMotorA = 1;
-      velocidadeMotorB = 1;
-      setpoint = originalSetpoint;    
-      #if LOG_BLUETOOTH
-        Serial.println("Setpoint zerado");
-      #endif
-    }
-    
-    if (incomingByte == 'L') { //Acender e apagar LED
-      digitalWrite(ledPin, !digitalRead(ledPin));
-      #if LOG_BLUETOOTH
-        Serial.println("LED: Ligado/Desligado");
-      #endif
-    }
-    if (incomingByte == 'C') { //Terminar movimentação
-      velocidadeMotorA = 1;
-      velocidadeMotorB = 1;
-      setpoint = originalSetpoint;    
-      #if LOG_BLUETOOTH
-        Serial.println("Setpoint zerado");
-      #endif
     }
   }
 }
