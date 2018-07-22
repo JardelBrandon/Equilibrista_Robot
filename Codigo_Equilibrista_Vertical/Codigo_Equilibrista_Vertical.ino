@@ -1,6 +1,7 @@
 #include <PID_v1.h> // Inclui biblioteca do PID
 #include <LMotorController.h> // Inclui biblioteca do controlador de motores DC
 #include "I2Cdev.h"  // Inclui a biblioteca I2C (Protocolo de comunicação usado pelo MPU6050)
+#include<SoftwareSerial.h>
 
 #include "MPU6050_6Axis_MotionApps20.h" // Inclui a biblioteca MPU6050_6Axis_MotionApps20 (Configuração do modo escolhido para setup no MPU6050)
 
@@ -9,15 +10,23 @@
     #include "Wire.h" // Inclui biblioteca Wire (Comunicação do arduino com o protocolo I2C)
 #endif //Fim da macro condição 
 
-
 #define LOG_INPUT 0 // Define a constante LOG_INPUT, se for diferente de 0 imprime no serial os valores obtidos pelo giroscópio; se for 0 não imprime 
 #define MANUAL_TUNING 0 // Define a constante MANUAL_TUNING, se for diferente de 0 a configuração do PID se dar por forma manual (Através dos potenciômetros); se for 0 usa o PID pré-definido  
 #define LOG_PID_CONSTANTS 0 //Define a constante LOG_PID_CONSTANTS, se for diferente de 0 imprime no serial os valores manuiais obtidos de Kp, Ki e Kd; se for 0 não imprime  
-#define MOVE_BACK_FORTH 0 // Define a constante MOVE_BACK_FORTH, se for diferente de 0, a função é invocada e aumenta e diminua do setpoint valor de movingAngleOffset a cada 5 segundos, se for 0 não invoca a função  
 #define MIN_ABS_SPEED 30 // Define a constante MIN_ABS_SPEED, que será o menor valor de velocidade para os motores 
+#define BLUETOOTH 1
+
+//Bluetooth
+
+const int rxpin = 4; // pin used to receive (not used in this version) 
+const int txpin = 11; // pin used to send to LCD
+
+SoftwareSerial bluetooth(rxpin, txpin); // new serial port on pins 11 and 4 (TX, RX no Bluetooth)
+
+const int ledPin = 13;
+int incomingByte;  
 
 // MPU
-
 
 MPU6050 mpu; //Inclui as funções do MPU6050
 
@@ -42,46 +51,55 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll Recipiente e veto
   double kp , ki, kd; // Define kp, ki e kd como sendo do tipo double 
   double prevKp, prevKi, prevKd; // Define prevKp, prevKi e prevKd como sendo do tipo double  
 #endif // Encerra a Macro condição 
-double originalSetpoint = 183; // Define originalSetpoint como sendo do tipo double (Esse valor é o ângulo desejado para o robô) 
-double setpoint = originalSetpoint; // Define setpoint como sendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
-double movingAngleOffset = 0.3; // Define movingAngleOffset como sendo do tipo double (Valor para ser acrescentado e diminuido no setpoint se a constante MOVE_BACK_FORTH for != 0)
+
+double anguloMovimentar = 3;
+double originalSetpoint = 2;
+double setpoint = originalSetpoint; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
 double input, output; // Define input e output como sendo do tipo double (Valores de entrada e saída do cálculo PID)
-int moveState=0; // Define moveState como sendo do tipo int (Inteiros) função do movimento do robô, se for 0 = balanceado; 1 = para trás; 2 = frente
 
 #if MANUAL_TUNING // Macro condição, se a constante MANUAL_TUNING for diferente de 0 realiza o comando abaixo (Ajuste do PID de forma Manual com potenciômetros)
   PID pid(&input, &output, &setpoint, 0, 0, 0, DIRECT); // Define a função do PID com os valores informados para o input, output, setpoint, Kp, Ki, Kd e o sentido de direção do controle 
 #else // Macro condição, se não for diferente de 0 realiza o comando abaixo (Ajuste pré-definido do PID, "forma Automática")
-  PID pid(&input, &output, &setpoint, 21, 47, 0.4, DIRECT); // Define a função do PID com os valores informados para o input, output, setpoint, Kp, Ki, Kd e o sentido de direção do controle
+  PID pid(&input, &output, &setpoint, 30, 350, 1.7, DIRECT); // Define a função do PID com os valores informados para o input, output, setpoint, Kp, Ki, Kd e o sentido de direção do controle
 #endif  // Encerra a Macro condição
 //Obs: Valores Manuais para o PID melhores aceitos no nosso robô KP = 21 KI = 47 KD = 0.4  
+//Atualizacao KP = 30, KI = 350, KD = 1.7
 
 // Controle do MOTOR 
 
 
-int ENA = 3; // Pino de Saída do controle PWM do motor Esquerdo 
-int IN1 = 8; // Pino de Saída da ligação do motor Esquerdo, HIGH ou LOW 
-int IN2 = 9; // Pino de Saída da ligação do motor Esquerdo, HIGH ou LOW 
-int IN3 = 11; // Pino de Saída da ligação do motor Direito, HIGH ou LOW 
-int IN4 = 10; // Pino de Saída da ligação do motor Direito, HIGH ou LOW 
-int ENB = 6; // Pino de Saída do controle PWM do motor Direito
+int ENA = 9; // Pino de Saída do controle PWM do motor Esquerdo 
+int IN1 = 5; // Pino de Saída da ligação do motor Esquerdo, HIGH ou LOW 
+int IN2 = 8; // Pino de Saída da ligação do motor Esquerdo, HIGH ou LOW 
+int IN3 = 6; // Pino de Saída da ligação do motor Direito, HIGH ou LOW 
+int IN4 = 12; // Pino de Saída da ligação do motor Direito, HIGH ou LOW 
+int ENB = 10; // Pino de Saída do controle PWM do motor Direito
+
+int velocidadeMotorA = 1;
+int velocidadeMotorB = 1;
+
+LMotorController motorController(ENA, IN1, IN2, ENB, IN3, IN4, velocidadeMotorA, velocidadeMotorB); // Define os pinos na função da biblioteca de controle de motores DC e as constantes de velocidade dos motores 
 
 
-LMotorController motorController(ENA, IN1, IN2, ENB, IN3, IN4, 0.6, 0.75); // Define os pinos na função da biblioteca de controle de motores DC e as constantes de velocidade dos motores 
-
-
-// Temporizadores
+// Temporizador
 
 
 long time1Hz = 0; // Define time1Hz como sendo do tipo long 
-long time5Hz = 0; // Define time5Hz como sendo do tipo long 
 
 
+// MPU e DMP
 volatile bool mpuInterrupt = false;     // indica se o pino de interrupção do MPU6050 foi alto (HIGH)
 void dmpDataReady() // Define a função dmpDataReady para verificação de inicialização do DMP (Digital Motion Processor)
 {
     mpuInterrupt = true; // Análisa se houve interrupção do MPU6050 se sim recebe True 
 }
 
+typedef enum StateDirection{  // <-- the use of typedef is optional
+  FRENTE_TRAZ,
+  DIREITA,
+  ESQUERDA
+};
+StateDirection state;
 
 void setup() //Função de configuração do setup para inicialização no arduino
 {
@@ -93,41 +111,40 @@ void setup() //Função de configuração do setup para inicialização no ardui
         Fastwire::setup(400, true); // Inicia a função de comunicação do MPU com o arduino pela biblioteca Fastwire definindo os paramêtros da função
     #endif // Encerra a Macro condição 
 
-    //Inicia a porta de comunicação Serial 
-    Serial.begin(115200);
+    bluetooth.begin(115200); //Inicia a porta de comunicção Serial com o bluetooth
+    Serial.begin(115200); //Inicia a porta de comunicação Serial 
+
+    // Configura porta do led como saída
+    pinMode(ledPin, OUTPUT);
+
+    // Configura o estado da direção do robô para frente e para traz
+    state = FRENTE_TRAZ;
 
     // Inicia o dispostivo de comunicação I2C (MPU6050)
-    Serial.println(F("Initializing I2C devices...")); // Imprime no Serial, inicialização dos dispositivos I2C
     mpu.initialize(); // Função de inicialização do MPU6050
 
-    // Verifica a conexão do dispositivo com o arduino
-    Serial.println(F("Testing device connections...")); // Imprime no serial, Teste de conexão com o dispositivo
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
-
+    
     // Carrega e configura o DMP (Digital Motion Processor)
-    Serial.println(F("Initializing DMP...")); // Imprime na tela, inicialização do DMP
     devStatus = mpu.dmpInitialize(); // Invoca a função de inicialização do DMP e salva seu retorno na variável devStatus 
 
     // Forneça os valores de deslocamentos do giroscópio, ajustados para a sensibilidade mínima
     mpu.setXGyroOffset(220); // Define o valor como paramêtro da função para o ângulo X do Giroscópio
     mpu.setYGyroOffset(76); // Define o valor como paramêtro da função para o ângulo Y do Giroscópio
-    mpu.setZGyroOffset(-85); // Define o valor como paramêtro da função para o ângulo Y do Giroscópio
+    mpu.setZGyroOffset(-85); // Define o valor como paramêtro da função para o ângulo z do Giroscópio
     mpu.setZAccelOffset(1788); // Define o valor como paramêtro da função para o ângulo Z do Acelerômetro 
 
     // Certifica-se se o valor da inicialização do DMP foi realizada com sucesso (retorna 0 se assim for)
     if (devStatus == 0)
     {
         // Liga o DMP, agora que está ok (Passou no teste)
-        Serial.println(F("Enabling DMP...")); // Imprime no Serial, Habilitando o DMP
         mpu.setDMPEnabled(true); // Invoca a função de habilitação do DMP passando o paramêtro verdadeiro
 
         // Ativa a detecção de interrupção do Arduino
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)...")); // Imprime no Serial, Habilitação de detecção de interrupação (Externo ao arduino interrupção 0)
         attachInterrupt(0, dmpDataReady, RISING); // Invoca a função de interrupção do MPU6050 com os paramêtros fornecidos entre parênteses 
         mpuIntStatus = mpu.getIntStatus(); // Invoca a função do status do funcionamento da interrupção do MPU6050 e salva o retorno na variável mpuIntStatus 
 
         // define nosso sinalizador DMP Ready para que a função loop () principal saiba que está tudo ok
-        Serial.println(F("DMP ready! Waiting for first interrupt...")); // Imprime no Serial que o DMP está ok e aguardando interrupções do MPU6050
         dmpReady = true; // A variável dmpReady recebe o valor bolleano Verdadeiro
 
         // obter tamanho de pacote DMP esperado para comparação posterior
@@ -138,13 +155,6 @@ void setup() //Função de configuração do setup para inicialização no ardui
         pid.SetMode(AUTOMATIC); // Invoca a função de definição do modo do PID e realiza o setup da forma escolhida 
         pid.SetSampleTime(10); // Invoca a função do tempo de amostragem do PID (Tempo de realização dos cálculos em milisegundos)
         pid.SetOutputLimits(-255, 255); // Invoca a função da saída limite do PID e define os valores máximo e mínimo 
-    }
-    else // Se a inicialização do DMP falhou realiza os códigos abaixo 
-    {
-        // ERRO!
-        Serial.print(F("DMP Initialization failed (code ")); // Imprime no Serial, inicialização do DMP falhou (código da falha)
-        Serial.print(devStatus); // Imprime no Serial, o código da falha presente na variável devStatus
-        Serial.println(F(")")); // Imprime no Serial, ") 
     }
 }
 
@@ -159,9 +169,21 @@ void loop()  //Função de configuração do loop de repetição do arduino
     {
         
         // Quando o MPU6050 envia os dados, é executado os cálculos do PID e de acordo com o cálculo define a velocidade de saída para os motores
-        pid.Compute(); // Invoca a função do cálculo do PID da biblioteca do arduino 
-        motorController.move(output, MIN_ABS_SPEED); // Invoca a função de controle dos motores DC Usando como paramêtros os motores a velocidade (output do PID) e a velociade Mínima 
-        
+        pid.Compute(); // Invoca a função do cálculo do PID da biblioteca do arduino   
+        switch(state) {
+          case FRENTE_TRAZ:         
+            motorController.move(output, MIN_ABS_SPEED); // Invoca a função de controle dos motores DC Usando como paramêtros os motores a velocidade (output do PID) e a velociade Mínima
+            break;
+          case DIREITA:
+            pid.Compute();
+            motorController.turnRight(output, MIN_ABS_SPEED);
+            break;
+          case ESQUERDA:
+            pid.Compute();
+            motorController.turnLeft(output, MIN_ABS_SPEED);
+            break;
+        }
+          
         unsigned long currentMillis = millis(); // Define currentMillis como sendo do tipo unsigned long, que recebe os milisegundos de cada loop 
         
         if (currentMillis - time1Hz >= 1000) // Se o tempo de currentMillis menos o tempo de time1Hz for menor ou igual a 1000 realiza o código abaixo 
@@ -170,11 +192,6 @@ void loop()  //Função de configuração do loop de repetição do arduino
             time1Hz = currentMillis; // Define que a variável time1Hz é igual a variável currentMillis (De 1000 em 1000 "A cada segundo")
         }
         
-        if (currentMillis - time5Hz >= 5000) // Se o tempo de currentMillis menos o tempo de time5Hz for menor ou igual a 5000 realiza o código abaixo 
-        {
-            loopAt5Hz(); // Invoca a função loopAt1Hz que está definida próxima ao final do código 
-            time5Hz = currentMillis; // Define que a variável time1Hz é igual a variável currentMillis (De 5000 em 5000 "A cada 5 segundos")
-        }
     }
 
     // redefini o sinalizador de interrupção e obtém o valor do byte INT_STATUS
@@ -189,7 +206,6 @@ void loop()  //Função de configuração do loop de repetição do arduino
     {
         // Se acontecer o overflow o FIFO do MPU6050 é resetado para continuar limpo
         mpu.resetFIFO(); // Função que reseta o FIFO (acrônimo para First In, First Out, que em português significa primeiro a entrar, primeiro a sair) do MPU6050
-        Serial.println(F("FIFO overflow!")); // Imprime no Serial, que aconteceu overflow no FIFO
     }
     
     // Caso contrário, verifica se há interrupção pronta de dados do DMP (isso deve acontecer com freqüência)
@@ -216,9 +232,48 @@ void loop()  //Função de configuração do loop de repetição do arduino
             Serial.print("\t"); // Imprime um espaçamento de tabulação (tab)
             Serial.println(ypr[2] * 180/M_PI); // Imprime no Serial, o valor de Roll
         #endif // Encerra a Macro condição
-        input = ypr[2] * 180/M_PI + 180; // Seleciona o valor desejado para o programa, se ypr[0] = Yaw, se ypr[1] = Pitch, se ypr[2] = Roll
+        input = ypr[2] * 180/M_PI; // Seleciona o valor desejado para o programa, se ypr[0] = Yaw, se ypr[1] = Pitch, se ypr[2] = Roll
                                          // Armazena no input para o cálculo do PID o valor desejado para o robô, (No nosso caso o valor de Roll ypr[2])
    }
+   #if BLUETOOTH 
+      bluetooth_control();
+   #endif
+}
+
+
+void bluetooth_control() {
+  
+  // see if there's incoming serial data:
+  if (bluetooth.available() > 0) {
+    // read the oldest byte in the serial buffer:
+    incomingByte = bluetooth.read();
+
+    switch (incomingByte) {
+      case 'F':
+        setpoint = originalSetpoint - anguloMovimentar;   
+        state = FRENTE_TRAZ;  
+        break;
+      case 'T':
+        setpoint = originalSetpoint + anguloMovimentar;  
+        state = FRENTE_TRAZ;
+        break;
+      case 'D':        
+        setpoint = originalSetpoint - anguloMovimentar;
+        state = DIREITA;     
+        break;
+      case 'E':
+        setpoint = originalSetpoint + anguloMovimentar;
+        state = ESQUERDA;
+        break;
+      case 'L':
+        digitalWrite(ledPin, !digitalRead(ledPin));
+        break;
+      case 'C':
+        state = FRENTE_TRAZ;
+        setpoint = originalSetpoint;
+        break;
+    }
+  }
 }
 
 
@@ -228,35 +283,6 @@ void loopAt1Hz() // Define a função loopAt1Hz (É realizada a cada segundo)
     setPIDTuningValues(); // Define os valores do Kp, Ki e Kd do PID, que podem ser definidos pelos potenciômetros
 #endif // Encerra a Macro condição 
 }
-
-
-void loopAt5Hz() // Define a função loopAt5Hz (É realizada a cada 5 segundos)
-{
-    #if MOVE_BACK_FORTH // Se a constante MOVE_BACK_FORTH for diferente de 0, é realizado o comando abaixo
-        moveBackForth(); // Invoca a função moveBackForth que está definida logo abaixo 
-    #endif // Encerra a Macro condição 
-}
-
-
-//move back and forth
-
-
-void moveBackForth() // Define a função moveBackForth() 
-{
-    moveState++; // Adiciona 1 cada vez que a função é invocada (A cada 5 Segundos)
-    if (moveState > 2) moveState = 0; // Se a variável moveState for maior que 2 ela é zerada 
-    
-    if (moveState == 0) // Se a variável moveState for igual a zero, o setpoint será igual ao setpoint original
-      setpoint = originalSetpoint; // setpoint recebe o originalSetpoint (Setpoint originalmente definido)
-    else if (moveState == 1) // Se a variável moveState for igual a um, o setpoint será subtraído do movingAngleOffset
-      setpoint = originalSetpoint - movingAngleOffset; // setpoint recebe o originalSetpoint - movingAngle (Setpoint originalmente definido menos o ângulo de variação definido)
-    else // Se a variável moveState for igual a dois, o setpoint será acrescido do movingAngleOffset
-      setpoint = originalSetpoint + movingAngleOffset; // setpoint recebe o originalSetpoint + movingAngle (Setpoint originalmente definido mais o ângulo de variação definido)
-      // Essa função tem o propósito de simular uma variação no ângulo de equilibrio (Setpoint) do robô, fazendo com que de acordo com as definições se movimente para frente e para trás 
-      // A variação do ângulo original depende das definições do originalSetpoint e movingAngleOffset definidos, quanto maior o movingAngleOffset mair será a variação do setpoint
-      // Essa função é invocada no loopAt5Hz sendo assim, a alteração do setpoint se da a cada 5 segundos
-}
-
 
 //PID Configuração (com 3 potenciômetros)
 
@@ -275,6 +301,7 @@ void setPIDTuningValues() // Invoca a função de setup do PID
         prevKp = kp; prevKi = ki; prevKd = kd; // Define que os valores antigos são iguais aos atuais após a configuração
     }
 }
+
 
 void readPIDTuningValues() // Define a função readPIDTuningValues(), para leitura dos valores das constantes do PID atráves dos potenciômetros
 {
