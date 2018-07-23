@@ -53,7 +53,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll Recipiente e veto
 #endif // Encerra a Macro condição 
 
 double anguloMovimentar = 3;
-double originalSetpoint = 2;
+double originalSetpoint = 5;
 double setpoint = originalSetpoint; // Define setpoint como sqendo do tipo double e igual ao originalSetpoint (Para efeito de cálculos no PID)
 double input, output; // Define input e output como sendo do tipo double (Valores de entrada e saída do cálculo PID)
 
@@ -94,12 +94,6 @@ void dmpDataReady() // Define a função dmpDataReady para verificação de inic
     mpuInterrupt = true; // Análisa se houve interrupção do MPU6050 se sim recebe True 
 }
 
-typedef enum StateDirection{  // <-- the use of typedef is optional
-  FRENTE_TRAZ,
-  DIREITA,
-  ESQUERDA
-};
-StateDirection state;
 
 void setup() //Função de configuração do setup para inicialização no arduino
 {
@@ -114,16 +108,19 @@ void setup() //Função de configuração do setup para inicialização no ardui
     bluetooth.begin(115200); //Inicia a porta de comunicção Serial com o bluetooth
     Serial.begin(115200); //Inicia a porta de comunicação Serial 
 
-    // Configura porta do led como saída
-    pinMode(ledPin, OUTPUT);
+    //Configura porta do led como saída
 
-    // Configura o estado da direção do robô para frente e para traz
-    state = FRENTE_TRAZ;
+    pinMode(ledPin, OUTPUT);
 
     // Inicia o dispostivo de comunicação I2C (MPU6050)
     mpu.initialize(); // Função de inicialização do MPU6050
 
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
+    #if BLUETOOTH
+      // Verifica a conexão do dispositivo com o arduino
+      bluetooth.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
+    #else
+      Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed")); //Realiza a função de teste de conexão com o MPU e imprime se falhou ou funcionou  
+    #endif
     
     // Carrega e configura o DMP (Digital Motion Processor)
     devStatus = mpu.dmpInitialize(); // Invoca a função de inicialização do DMP e salva seu retorno na variável devStatus 
@@ -170,20 +167,7 @@ void loop()  //Função de configuração do loop de repetição do arduino
         
         // Quando o MPU6050 envia os dados, é executado os cálculos do PID e de acordo com o cálculo define a velocidade de saída para os motores
         pid.Compute(); // Invoca a função do cálculo do PID da biblioteca do arduino   
-        switch(state) {
-          case FRENTE_TRAZ:         
-            motorController.move(output, MIN_ABS_SPEED); // Invoca a função de controle dos motores DC Usando como paramêtros os motores a velocidade (output do PID) e a velociade Mínima
-            break;
-          case DIREITA:
-            pid.Compute();
-            motorController.turnRight(output, MIN_ABS_SPEED);
-            break;
-          case ESQUERDA:
-            pid.Compute();
-            motorController.turnLeft(output, MIN_ABS_SPEED);
-            break;
-        }
-          
+        motorController.move(output * velocidadeMotorA, output * velocidadeMotorB, MIN_ABS_SPEED); // Invoca a função de controle dos motores DC Usando como paramêtros os motores a velocidade (output do PID) e a velociade Mínima
         unsigned long currentMillis = millis(); // Define currentMillis como sendo do tipo unsigned long, que recebe os milisegundos de cada loop 
         
         if (currentMillis - time1Hz >= 1000) // Se o tempo de currentMillis menos o tempo de time1Hz for menor ou igual a 1000 realiza o código abaixo 
@@ -250,30 +234,34 @@ void bluetooth_control() {
 
     switch (incomingByte) {
       case 'F':
-        setpoint = originalSetpoint - anguloMovimentar;   
-        state = FRENTE_TRAZ;  
+        setpoint = originalSetpoint - anguloMovimentar;     
         break;
       case 'T':
         setpoint = originalSetpoint + anguloMovimentar;  
-        state = FRENTE_TRAZ;
         break;
-      case 'D':        
-        setpoint = originalSetpoint - anguloMovimentar;
-        state = DIREITA;     
+      case 'D':
+        setpoint = originalSetpoint + anguloMovimentar;
+        velocidadeMotorB = 0.5; 
         break;
       case 'E':
-        setpoint = originalSetpoint + anguloMovimentar;
-        state = ESQUERDA;
+        setpoint = originalSetpoint + anguloMovimentar;    
+        velocidadeMotorA = 0.5;
         break;
       case 'L':
         digitalWrite(ledPin, !digitalRead(ledPin));
         break;
-      case 'C':
-        state = FRENTE_TRAZ;
-        setpoint = originalSetpoint;
-        break;
+    }
+ 
+    if (incomingByte == 'C' or (incomingByte == 'E' and !equilibrado()) or (incomingByte == 'D' and !equilibrado())) { //Terminar movimentação
+      velocidadeMotorA = 1;
+      velocidadeMotorB = 1;
+      setpoint = originalSetpoint;    
     }
   }
+}
+
+boolean equilibrado() {
+  return (input < (originalSetpoint + anguloMovimentar) and input > (originalSetpoint - anguloMovimentar));
 }
 
 
